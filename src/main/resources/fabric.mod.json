@@ -1,37 +1,43 @@
 {
   "schemaVersion": 1,
-  "id": "modid",
+  "id": "indrevstorage",
   "version": "${version}",
 
-  "name": "Example Mod",
-  "description": "This is an example description! Tell everyone what your mod is about!",
+  "name": "Industrial Revolution: Dynamic Storage",
+  "description": "A storage add-on for Industrial Revolution.",
   "authors": [
-    "Me!"
+    "GabrielOlvH"
   ],
   "contact": {
-    "homepage": "https://fabricmc.net/",
-    "sources": "https://github.com/FabricMC/fabric-example-mod"
+    "homepage": "https://github.com/GabrielOlvH/Industrial-Revolution-Dynamic-Storage",
+    "sources": "https://github.com/GabrielOlvH/Industrial-Revolution-Dynamic-Storage"
   },
 
-  "license": "CC0-1.0",
-  "icon": "assets/modid/icon.png",
+  "license": "Apache 2.0",
+  "icon": "assets/indrevstorage/icon.png",
 
   "environment": "*",
   "entrypoints": {
     "main": [
-      "net.fabricmc.example.ExampleModKt::init"
+      {
+        "adapter": "kotlin",
+        "value": "me.steven.indrevstorage.IRDynamicStorage"
+      }
+    ],
+    "client": [
+      {
+        "adapter": "kotlin",
+        "value": "me.steven.indrevstorage.IRDynamicStorageClient"
+      }
     ]
   },
   "mixins": [
-    "modid.mixins.json"
+    "indrevstorage.mixins.json"
   ],
   "depends": {
     "fabricloader": ">=0.8.7",
     "fabric": "*",
     "fabric-language-kotlin": "*",
     "minecraft": "1.16.x"
-  },
-  "suggests": {
-    "flamingo": "*"
   }
 }
