@@ -31,8 +31,7 @@ class WIRDSInventorySlot(private val handler: TerminalScreenHandler, val index: 
             matrices.translate(0.0, 0.0, client.itemRenderer.zOffset + 200.0)
             val immediate = VertexConsumerProvider.immediate(Tessellator.getInstance().buffer)
             matrices.scale(0.8f, 0.8f, 1f)
-            renderer.draw(count.toString(), x + 52f + (index%9 * 4.5f) - renderer.getWidth(count.toString()), y +22f + (index/9 * 4.5f), 16777215, true, matrices.peek().model, immediate, false, 0, 15728880)
-           // renderer.draw(count.toString(), x + 19f - renderer.getWidth(count.toString()), y + 6f + 4f, 16777215, true, matrices.peek().model, immediate, false, 0, 15728880)
+            renderer.draw(count.toString(), x + 52f + (index % 9 * 4.5f) - renderer.getWidth(count.toString()), y + 22f + (index / 9 * 4.5f), 16777215, true, matrices.peek().model, immediate, false, 0, 15728880)
             immediate.draw()
             matrices.pop()
         }
