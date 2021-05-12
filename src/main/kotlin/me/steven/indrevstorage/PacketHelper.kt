@@ -33,9 +33,7 @@ object PacketHelper {
                     var extracted = 0
                     for (inv in invs) {
                         val c = inv[type]
-                        extracted += c.coerceAtMost(maxAmount)
-                        val before = inv.map.addTo(type, -extracted)
-                        if (extracted >= before) inv.map.removeInt(type)
+                        extracted += inv.extract(type, c.coerceAtMost(maxAmount))
                         if (extracted >= maxAmount) break
                     }
                     if (extracted > 0) {
@@ -46,14 +44,15 @@ object PacketHelper {
                 } else {
                     // INSERT
                     val typeToInsert = ItemType(cursorStack.item, cursorStack.tag)
-                    val remaining = cursorStack.count
+                    var remaining = cursorStack.count
 
                     val it = network.iterator(HardDriveRackBlockEntity::class)
                     outer@while (it.hasNext()) {
                         val rack = it.next()
                         for (inv in rack.drivesInv.sortedByDescending { it?.has(typeToInsert) }.filterNotNull()) {
-                            inv.map.addTo(typeToInsert, remaining)
-                            break@outer
+                            remaining = inv.insert(typeToInsert, remaining)
+                            if (remaining <= 0)
+                                break@outer
                         }
                     }
 

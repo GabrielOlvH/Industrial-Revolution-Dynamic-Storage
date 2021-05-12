@@ -4,7 +4,7 @@ import alexiil.mc.lib.attributes.item.AbstractItemInvView
 import alexiil.mc.lib.attributes.item.InvMarkDirtyListener
 import alexiil.mc.lib.attributes.item.impl.DirectFixedItemInv
 import me.steven.indrevstorage.IRDynamicStorage
-import me.steven.indrevstorage.api.IRDSInventory
+import me.steven.indrevstorage.api.IRDSHardDriveInventory
 import me.steven.indrevstorage.api.IRDSNetwork
 import me.steven.indrevstorage.api.StorageNetworkComponent
 import me.steven.indrevstorage.gui.HardDriveRackScreenHandler
@@ -32,7 +32,7 @@ class HardDriveRackBlockEntity :
 
     val inv = DirectFixedItemInv(4)
 
-    val drivesInv = Array<IRDSInventory?>(4) { null }
+    val drivesInv = Array<IRDSHardDriveInventory?>(4) { null }
 
     override var network: IRDSNetwork? = null
 
@@ -62,8 +62,10 @@ class HardDriveRackBlockEntity :
                 drivesInv[slot] = null
                 return@forEach
             }
-            val newInv = IRDSInventory()
-            IRDSInventory.fromNbt(newInv, stack.tag?.getList("Items", 10) ?: return@forEach)
+            val newInv = IRDSHardDriveInventory()
+            val tag = stack.tag
+            if (tag != null)
+                IRDSHardDriveInventory.fromNbt(newInv, tag.getList("Items", 10))
             drivesInv[slot] = newInv
         }
 

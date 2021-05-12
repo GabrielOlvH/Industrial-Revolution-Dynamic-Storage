@@ -5,7 +5,7 @@ import me.steven.indrev.utils.component2
 import me.steven.indrev.utils.component3
 import me.steven.indrev.utils.toVec3d
 import me.steven.indrevstorage.IRDynamicStorage
-import me.steven.indrevstorage.api.IRDSInventory
+import me.steven.indrevstorage.api.IRDSHardDriveInventory
 import me.steven.indrevstorage.blockentities.HardDriveRackBlockEntity
 import me.steven.indrevstorage.utils.blockSettings
 import net.minecraft.block.Block
@@ -31,7 +31,7 @@ class HardDriveRackBlock : Block(blockSettings(Material.METAL)), BlockEntityProv
             val stack = player.mainHandStack
             if (stack.item == IRDynamicStorage.HARD_DRIVE) {
                 player.setStackInHand(Hand.MAIN_HAND, blockEntity.inv.insert(stack))
-                blockEntity.drivesInv[blockEntity.drivesInv.indexOfFirst { it == null }] = IRDSInventory()
+                blockEntity.drivesInv[blockEntity.drivesInv.indexOfFirst { it == null }] = IRDSHardDriveInventory()
                 blockEntity.updateInventories()
                 blockEntity.markDirty()
                 blockEntity.sync()
