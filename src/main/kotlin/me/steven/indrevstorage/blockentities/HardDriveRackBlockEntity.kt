@@ -5,11 +5,15 @@ import alexiil.mc.lib.attributes.item.InvMarkDirtyListener
 import alexiil.mc.lib.attributes.item.impl.DirectFixedItemInv
 import me.steven.indrevstorage.IRDynamicStorage
 import me.steven.indrevstorage.api.IRDSInventory
+import me.steven.indrevstorage.api.IRDSNetwork
+import me.steven.indrevstorage.api.StorageNetworkComponent
 import me.steven.indrevstorage.gui.HardDriveRackScreenHandler
+import me.steven.indrevstorage.gui.TerminalScreenHandler
 import net.fabricmc.fabric.api.block.entity.BlockEntityClientSerializable
 import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerFactory
 import net.minecraft.block.BlockState
 import net.minecraft.block.entity.BlockEntity
+import net.minecraft.client.MinecraftClient
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.entity.player.PlayerInventory
 import net.minecraft.nbt.CompoundTag
@@ -23,26 +27,22 @@ class HardDriveRackBlockEntity :
     BlockEntity(IRDynamicStorage.HARD_DRIVE_RACK_BLOCK_ENTITY),
     BlockEntityClientSerializable,
     ExtendedScreenHandlerFactory,
-    InvMarkDirtyListener {
+    InvMarkDirtyListener,
+    StorageNetworkComponent {
 
-    val inv = DirectFixedItemInv(8)
+    val inv = DirectFixedItemInv(4)
 
-    val drivesInv = Array<IRDSInventory?>(8) { null }
+    val drivesInv = Array<IRDSInventory?>(4) { null }
 
-    var dirty = false
+    override var network: IRDSNetwork? = null
 
     init {
         inv.addListener(this) {}
     }
 
     override fun onMarkDirty(inv: AbstractItemInvView) {
-        (0 until 8).forEach { slot ->
-            val current = this.inv.getInvStack(slot)
-            if (current.item != IRDynamicStorage.HARD_DRIVE) return@forEach
-            val newInv = IRDSInventory()
-            IRDSInventory.fromNbt(newInv, current.tag?.getList("Items", 10) ?: return@forEach)
-            drivesInv[slot] = newInv
-        }
+        updateInventories()
+        sync()
     }
 
     fun updateStacks() {
@@ -58,12 +58,16 @@ class HardDriveRackBlockEntity :
     fun updateInventories() {
         (0 until inv.slotCount).forEach { slot ->
             val stack = inv.getInvStack(slot)
-            if (stack.isEmpty) return@forEach
+            if (stack.item != IRDynamicStorage.HARD_DRIVE) {
+                drivesInv[slot] = null
+                return@forEach
+            }
             val newInv = IRDSInventory()
             IRDSInventory.fromNbt(newInv, stack.tag?.getList("Items", 10) ?: return@forEach)
             drivesInv[slot] = newInv
         }
-        dirty = true
+
+        network?.dirty = true
     }
 
     override fun createMenu(syncId: Int, inv: PlayerInventory, player: PlayerEntity): ScreenHandler {
@@ -78,7 +82,7 @@ class HardDriveRackBlockEntity :
 
     override fun markDirty() {
         super.markDirty()
-        this.dirty = true
+        network?.dirty = true
     }
 
     override fun fromTag(state: BlockState, tag: CompoundTag) {
@@ -96,6 +100,7 @@ class HardDriveRackBlockEntity :
     override fun fromClientTag(tag: CompoundTag) {
         inv.fromTag(tag.getCompound("Items"))
         updateInventories()
+        (MinecraftClient.getInstance().player?.currentScreenHandler as? TerminalScreenHandler)?.clientPositionsToRemap?.add(pos)
     }
 
     override fun toClientTag(tag: CompoundTag): CompoundTag {

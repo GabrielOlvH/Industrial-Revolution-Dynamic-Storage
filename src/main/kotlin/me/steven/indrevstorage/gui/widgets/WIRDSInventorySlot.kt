@@ -4,7 +4,7 @@ import io.github.cottonmc.cotton.gui.client.ScreenDrawing
 import io.github.cottonmc.cotton.gui.widget.WWidget
 import me.steven.indrevstorage.PacketHelper
 import me.steven.indrevstorage.api.MappedItemType
-import me.steven.indrevstorage.gui.HardDriveRackScreenHandler
+import me.steven.indrevstorage.gui.TerminalScreenHandler
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs
 import net.minecraft.client.MinecraftClient
@@ -12,11 +12,7 @@ import net.minecraft.client.gui.DrawableHelper
 import net.minecraft.client.gui.screen.Screen
 import net.minecraft.client.util.math.MatrixStack
 
-class WIRDSInventorySlot(private val handler: HardDriveRackScreenHandler, val index: Int) : WWidget() {
-
-    init {
-        handler.children.add(this)
-    }
+class WIRDSInventorySlot(private val handler: TerminalScreenHandler, val index: Int) : WWidget() {
 
     override fun paint(matrices: MatrixStack, x: Int, y: Int, mouseX: Int, mouseY: Int) {
         ScreenDrawing.drawBeveledPanel(matrices, x, y, height, width, -1207959552, 1275068416, -1191182337)
