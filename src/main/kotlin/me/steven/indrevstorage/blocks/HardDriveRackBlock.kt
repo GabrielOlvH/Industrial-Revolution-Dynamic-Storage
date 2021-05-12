@@ -4,8 +4,6 @@ import me.steven.indrev.utils.component1
 import me.steven.indrev.utils.component2
 import me.steven.indrev.utils.component3
 import me.steven.indrev.utils.toVec3d
-import me.steven.indrevstorage.IRDynamicStorage
-import me.steven.indrevstorage.api.impl.IRDSHardDriveInventory
 import me.steven.indrevstorage.blockentities.HardDriveRackBlockEntity
 import me.steven.indrevstorage.utils.blockSettings
 import net.minecraft.block.Block
@@ -28,16 +26,7 @@ class HardDriveRackBlock : Block(blockSettings(Material.METAL)), BlockEntityProv
     override fun onUse(state: BlockState?, world: World, pos: BlockPos, player: PlayerEntity, hand: Hand?, hit: BlockHitResult?): ActionResult {
         if (!world.isClient) {
             val blockEntity = world.getBlockEntity(pos) as? HardDriveRackBlockEntity ?: return ActionResult.PASS
-            val stack = player.mainHandStack
-            if (stack.item == IRDynamicStorage.HARD_DRIVE) {
-                player.setStackInHand(Hand.MAIN_HAND, blockEntity.inv.insert(stack))
-                blockEntity.drivesInv[blockEntity.drivesInv.indexOfFirst { it == null }] = IRDSHardDriveInventory()
-                blockEntity.updateInventories()
-                blockEntity.markDirty()
-                blockEntity.sync()
-            }
-            else
-                player.openHandledScreen(blockEntity)
+            player.openHandledScreen(blockEntity)
         }
         return ActionResult.success(world.isClient)
     }
