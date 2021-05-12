@@ -1,5 +1,6 @@
 package me.steven.indrevstorage
 
+import me.steven.indrevstorage.api.MappedItemType
 import me.steven.indrevstorage.blockentities.TerminalBlockEntity
 import me.steven.indrevstorage.gui.TerminalScreenHandler
 import me.steven.indrevstorage.utils.identifier
@@ -12,6 +13,7 @@ object PacketHelper {
 
     val CLICK_IRDSINV_SLOT = identifier("click_irdsinv_slot")
     val REMAP_SCREEN_HANDLER = identifier("remap_screen_handler")
+    val UPDATE_FILTER_TERMINAL = identifier("update_terminal_filter")
 
     fun registerServer() {
         ServerPlayNetworking.registerGlobalReceiver(CLICK_IRDSINV_SLOT) { server, player, _, buf, _ ->
@@ -23,6 +25,18 @@ object PacketHelper {
                 val blockEntity = player.world.getBlockEntity(screenHandler.pos) as? TerminalBlockEntity ?: return@execute
                 val network = blockEntity.network ?: return@execute
                 interactTerminalWithCursor(player, network, blockEntity, screenHandler, index, isCrouching)
+            }
+        }
+
+        ServerPlayNetworking.registerGlobalReceiver(UPDATE_FILTER_TERMINAL) { server, player, _, buf, _ ->
+            val size = buf.readByte().toInt()
+            val order = IntArray(size)
+            repeat(size) { index -> order[index] = buf.readByte().toInt() }
+            server.execute {
+                val screenHandler = player.currentScreenHandler as? TerminalScreenHandler ?: return@execute
+                val newList = ArrayList<MappedItemType>(size)
+                order.forEach { i -> newList.add(screenHandler.sortedByIdTypes[i]) }
+                screenHandler.mappedTypes = newList
             }
         }
     }

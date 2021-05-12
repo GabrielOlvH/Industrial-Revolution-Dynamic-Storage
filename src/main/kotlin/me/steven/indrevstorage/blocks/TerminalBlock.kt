@@ -39,24 +39,33 @@ class TerminalBlock : Block(blockSettings(Material.GLASS)), BlockEntityProvider 
                     return TerminalScreenHandler(syncId, inv, world, pos)
                 }
 
-                override fun getDisplayName(): Text = LiteralText("Terminal")
+                override fun getDisplayName(): Text = LiteralText.EMPTY
 
                 override fun writeScreenOpeningData(player: ServerPlayerEntity?, buf: PacketByteBuf) {
                     buf.writeBlockPos(pos)
                 }
-
             })
-            val terminal = componentOf(world, pos, null)!!.convert(TerminalBlockEntity::class)
-            val network = terminal?.network ?: return ActionResult.PASS
-            network.dirty = true
-
-            val positions = hashSetOf<BlockPos>()
-            network.forEach(HardDriveRackBlockEntity::class) { be -> if (be != null) positions.add(be.pos) }
-            val buf = PacketByteBufs.create()
-            buf.writeInt(positions.size)
-            positions.forEach(buf::writeBlockPos)
-            ServerPlayNetworking.send(player as ServerPlayerEntity, PacketHelper.REMAP_SCREEN_HANDLER, buf)
+            postOpenScreen(world, pos, player)
         }
         return ActionResult.success(world.isClient)
+    }
+
+    private fun postOpenScreen(world: World, pos: BlockPos, player: PlayerEntity) {
+        val terminal = componentOf(world, pos, null)!!.convert(TerminalBlockEntity::class)
+        val network = terminal?.network ?: return
+        network.dirty = true
+
+        val screenHandler = player.currentScreenHandler as? TerminalScreenHandler ?: return
+        if (network.dirty) {
+            screenHandler.remap()
+            network.dirty = false
+        }
+
+        val positions = hashSetOf<BlockPos>()
+        network.forEach(HardDriveRackBlockEntity::class) { be -> if (be != null) positions.add(be.pos) }
+        val buf = PacketByteBufs.create()
+        buf.writeInt(positions.size)
+        positions.forEach(buf::writeBlockPos)
+        ServerPlayNetworking.send(player as ServerPlayerEntity, PacketHelper.REMAP_SCREEN_HANDLER, buf)
     }
 }
