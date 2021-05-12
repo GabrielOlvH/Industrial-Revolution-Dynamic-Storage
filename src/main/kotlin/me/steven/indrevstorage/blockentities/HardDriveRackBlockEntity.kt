@@ -4,9 +4,9 @@ import alexiil.mc.lib.attributes.item.AbstractItemInvView
 import alexiil.mc.lib.attributes.item.InvMarkDirtyListener
 import alexiil.mc.lib.attributes.item.impl.DirectFixedItemInv
 import me.steven.indrevstorage.IRDynamicStorage
-import me.steven.indrevstorage.api.IRDSHardDriveInventory
 import me.steven.indrevstorage.api.IRDSNetwork
 import me.steven.indrevstorage.api.StorageNetworkComponent
+import me.steven.indrevstorage.api.impl.IRDSHardDriveInventory
 import me.steven.indrevstorage.gui.HardDriveRackScreenHandler
 import me.steven.indrevstorage.gui.TerminalScreenHandler
 import net.fabricmc.fabric.api.block.entity.BlockEntityClientSerializable

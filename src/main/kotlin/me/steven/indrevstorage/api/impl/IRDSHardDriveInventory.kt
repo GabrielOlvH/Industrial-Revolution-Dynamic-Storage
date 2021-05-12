@@ -1,6 +1,8 @@
-package me.steven.indrevstorage.api
+package me.steven.indrevstorage.api.impl
 
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap
+import me.steven.indrevstorage.api.IRDSInventory
+import me.steven.indrevstorage.api.ItemType
 import me.steven.indrevstorage.utils.with
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.nbt.ListTag

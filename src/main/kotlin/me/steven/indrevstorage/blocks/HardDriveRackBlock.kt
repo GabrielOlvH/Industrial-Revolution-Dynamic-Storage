@@ -5,7 +5,7 @@ import me.steven.indrev.utils.component2
 import me.steven.indrev.utils.component3
 import me.steven.indrev.utils.toVec3d
 import me.steven.indrevstorage.IRDynamicStorage
-import me.steven.indrevstorage.api.IRDSHardDriveInventory
+import me.steven.indrevstorage.api.impl.IRDSHardDriveInventory
 import me.steven.indrevstorage.blockentities.HardDriveRackBlockEntity
 import me.steven.indrevstorage.utils.blockSettings
 import net.minecraft.block.Block
