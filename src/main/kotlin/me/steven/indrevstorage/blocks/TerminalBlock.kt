@@ -1,13 +1,9 @@
 package me.steven.indrevstorage.blocks
 
-import me.steven.indrevstorage.PacketHelper
-import me.steven.indrevstorage.blockentities.HardDriveRackBlockEntity
 import me.steven.indrevstorage.blockentities.TerminalBlockEntity
 import me.steven.indrevstorage.gui.TerminalScreenHandler
 import me.steven.indrevstorage.utils.blockSettings
 import me.steven.indrevstorage.utils.componentOf
-import net.fabricmc.fabric.api.networking.v1.PacketByteBufs
-import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking
 import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerFactory
 import net.minecraft.block.Block
 import net.minecraft.block.BlockEntityProvider
@@ -53,19 +49,6 @@ class TerminalBlock : Block(blockSettings(Material.GLASS)), BlockEntityProvider 
     private fun postOpenScreen(world: World, pos: BlockPos, player: PlayerEntity) {
         val terminal = componentOf(world, pos, null)!!.convert(TerminalBlockEntity::class)
         val network = terminal?.network ?: return
-        network.dirty = true
-
-        val screenHandler = player.currentScreenHandler as? TerminalScreenHandler ?: return
-        if (network.dirty) {
-            screenHandler.remap()
-            network.dirty = false
-        }
-
-        val positions = hashSetOf<BlockPos>()
-        network.forEach(HardDriveRackBlockEntity::class) { be -> if (be != null) positions.add(be.pos) }
-        val buf = PacketByteBufs.create()
-        buf.writeInt(positions.size)
-        positions.forEach(buf::writeBlockPos)
-        ServerPlayNetworking.send(player as ServerPlayerEntity, PacketHelper.REMAP_SCREEN_HANDLER, buf)
+        network.markDirty()
     }
 }

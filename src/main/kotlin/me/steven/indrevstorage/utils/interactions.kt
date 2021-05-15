@@ -24,7 +24,7 @@ fun interactTerminalWithCursor(player: ServerPlayerEntity, network: IRDSNetwork,
         if (extracted > 0) {
             player.inventory.cursorStack = type.toItemStack(extracted)
             player.updateCursorStack()
-            network.syncHDRacks()
+            network.markDirty()
         }
     } else {
         // INSERT
@@ -43,6 +43,6 @@ fun interactTerminalWithCursor(player: ServerPlayerEntity, network: IRDSNetwork,
 
         player.inventory.cursorStack = ItemStack.EMPTY
         player.updateCursorStack()
-        blockEntity.network?.syncHDRacks()
+        network.markDirty()
     }
 }

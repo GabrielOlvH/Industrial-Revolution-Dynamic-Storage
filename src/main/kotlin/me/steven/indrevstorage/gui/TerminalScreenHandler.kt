@@ -4,6 +4,7 @@ import io.github.cottonmc.cotton.gui.SyncedGuiDescription
 import io.github.cottonmc.cotton.gui.widget.WGridPanel
 import io.github.cottonmc.cotton.gui.widget.WScrollPanel
 import io.github.cottonmc.cotton.gui.widget.WTextField
+import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap
 import me.steven.indrevstorage.IRDynamicStorage
 import me.steven.indrevstorage.PacketHelper
@@ -15,8 +16,6 @@ import me.steven.indrevstorage.blockentities.TerminalBlockEntity
 import me.steven.indrevstorage.gui.widgets.WIRDSInventorySlot
 import me.steven.indrevstorage.utils.componentOf
 import me.steven.indrevstorage.utils.identifier
-import net.fabricmc.api.EnvType
-import net.fabricmc.api.Environment
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs
 import net.fabricmc.fabric.api.util.TriState
@@ -39,11 +38,9 @@ class TerminalScreenHandler(syncId: Int, playerInventory: PlayerInventory, world
 
     private val nRows: Int get() = ceil((mappedTypes.size / 9.0)).toInt().coerceAtLeast(5)
 
-    var sortedByIdTypes = emptyList<MappedItemType>()
+    var sortedByIdTypes = emptyList<ItemType>()
     var mappedTypes = emptyList<MappedItemType>()
-
-    @Environment(EnvType.CLIENT)
-    val clientPositionsToRemap = hashSetOf<BlockPos>()
+    var clientThing = emptyList<Pair<ItemType, Int>>()
 
     var lastSearch = ""
     val searchText = object : WTextField(LiteralText("Search...")) {
@@ -64,20 +61,33 @@ class TerminalScreenHandler(syncId: Int, playerInventory: PlayerInventory, world
         val terminal = componentOf(world, pos, null)!!.convert(TerminalBlockEntity::class)
         val positions = hashSetOf<BlockPos>()
         terminal?.network?.forEach(HardDriveRackBlockEntity::class) { be -> if (be != null) positions.add(be.pos) }
-        remap(positions)
-    }
-
-    fun remap(positions: Set<BlockPos>) {
-        val before = nRows
         val map = Object2ObjectOpenHashMap<ItemType, HashSet<IRDSInventory>>()
-
         positions.forEach { pos ->
             componentOf(world, pos, null)?.convert(HardDriveRackBlockEntity::class)?.drivesInv?.forEach { inv ->
                 inv?.forEach { type, _ -> map.computeIfAbsent(type) { HashSet() }.add(inv) }
             }
         }
-        sortedByIdTypes = map.map { (type, invs) -> MappedItemType(type, invs) }
+        sortedByIdTypes = map.map { it.key }
+            .sortedWith(compareBy { Registry.ITEM.getRawId(it.item) })
+        val before = nRows
+        mappedTypes = map.map { MappedItemType(it.key, it.value) }
             .sortedWith(compareBy { Registry.ITEM.getRawId(it.type.item) })
+        val after = nRows
+
+        if (after != before) {
+            rebuildTerminalSlots()
+        }
+    }
+
+    fun remap(map: Object2IntOpenHashMap<ItemType>) {
+        val before = nRows
+
+        sortedByIdTypes = map.map { it.key }
+            .sortedWith(compareBy { Registry.ITEM.getRawId(it.item) })
+
+        this.clientThing = map.object2IntEntrySet()
+            .map { (key, value) -> key to value }
+            .sortedWith(compareBy { Registry.ITEM.getRawId(it.first.item) })
 
         if (world.isClient) {
             applyFilter()
@@ -91,15 +101,15 @@ class TerminalScreenHandler(syncId: Int, playerInventory: PlayerInventory, world
     }
 
     private fun applyFilter() {
-        mappedTypes = sortedByIdTypes.map { (type, invs) -> MappedItemType(type, invs) }
-            .sortedWith(compareByDescending { it.invs.sumBy { inv -> inv[it.type] } })
-            .filter { I18n.translate(it.type.item.translationKey).toLowerCase().startsWith(lastSearch.toLowerCase()) }
+        clientThing = clientThing
+            .sortedWith(compareByDescending { it.second })
+            .filter { I18n.translate(it.first.item.translationKey).toLowerCase().startsWith(lastSearch.toLowerCase()) }
 
         val buf = PacketByteBufs.create()
-        buf.writeByte(mappedTypes.size)
-        mappedTypes.forEach {
-            val indexOf = sortedByIdTypes.indexOf(it)
-            if (indexOf >= 0) buf.writeByte(indexOf)
+        buf.writeInt(clientThing.size)
+        clientThing.forEach {
+            val indexOf = sortedByIdTypes.indexOf(it.first)
+            if (indexOf >= 0) buf.writeInt(indexOf)
         }
         ClientPlayNetworking.send(PacketHelper.UPDATE_FILTER_TERMINAL, buf)
     }
@@ -134,10 +144,6 @@ class TerminalScreenHandler(syncId: Int, playerInventory: PlayerInventory, world
     }
 
     private fun clientTick() {
-        if (clientPositionsToRemap.isNotEmpty()) {
-            remap(clientPositionsToRemap)
-            clientPositionsToRemap.clear()
-        }
         if (lastSearch != searchText.text) {
             lastSearch = searchText.text
             applyFilter()

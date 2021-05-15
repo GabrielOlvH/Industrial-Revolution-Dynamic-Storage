@@ -3,6 +3,7 @@ package me.steven.indrevstorage.events
 import me.steven.indrevstorage.blockentities.TerminalBlockEntity
 import me.steven.indrevstorage.gui.TerminalScreenHandler
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents
+import net.minecraft.server.network.ServerPlayerEntity
 import net.minecraft.server.world.ServerWorld
 
 object IRDSStartWorldTick : ServerTickEvents.StartWorldTick {
@@ -12,7 +13,7 @@ object IRDSStartWorldTick : ServerTickEvents.StartWorldTick {
             val blockEntity = world.getBlockEntity(screenHandler.pos) as? TerminalBlockEntity ?: return@forEach
             val network = blockEntity.network ?: return@forEach
             if (network.dirty) {
-                screenHandler.remap()
+                network.syncHDRacks(screenHandler, player as ServerPlayerEntity)
                 network.dirty = false
             }
         }

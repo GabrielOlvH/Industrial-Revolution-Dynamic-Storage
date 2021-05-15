@@ -8,12 +8,9 @@ import me.steven.indrevstorage.api.IRDSNetwork
 import me.steven.indrevstorage.api.StorageNetworkComponent
 import me.steven.indrevstorage.api.impl.IRDSHardDriveInventory
 import me.steven.indrevstorage.gui.HardDriveRackScreenHandler
-import me.steven.indrevstorage.gui.TerminalScreenHandler
-import net.fabricmc.fabric.api.block.entity.BlockEntityClientSerializable
 import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerFactory
 import net.minecraft.block.BlockState
 import net.minecraft.block.entity.BlockEntity
-import net.minecraft.client.MinecraftClient
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.entity.player.PlayerInventory
 import net.minecraft.nbt.CompoundTag
@@ -25,7 +22,6 @@ import net.minecraft.text.Text
 
 class HardDriveRackBlockEntity :
     BlockEntity(IRDynamicStorage.HARD_DRIVE_RACK_BLOCK_ENTITY),
-    BlockEntityClientSerializable,
     ExtendedScreenHandlerFactory,
     InvMarkDirtyListener,
     StorageNetworkComponent {
@@ -42,7 +38,8 @@ class HardDriveRackBlockEntity :
 
     override fun onMarkDirty(inv: AbstractItemInvView) {
         updateInventories()
-        sync()
+        network?.markDirty()
+        markDirty()
     }
 
     fun updateStacks() {
@@ -69,7 +66,7 @@ class HardDriveRackBlockEntity :
             drivesInv[slot] = newInv
         }
 
-        network?.dirty = true
+        network?.markDirty()
     }
 
     override fun createMenu(syncId: Int, inv: PlayerInventory, player: PlayerEntity): ScreenHandler {
@@ -80,11 +77,6 @@ class HardDriveRackBlockEntity :
 
     override fun writeScreenOpeningData(player: ServerPlayerEntity?, buf: PacketByteBuf) {
         buf.writeBlockPos(pos)
-    }
-
-    override fun markDirty() {
-        super.markDirty()
-        network?.dirty = true
     }
 
     override fun fromTag(state: BlockState, tag: CompoundTag) {
@@ -99,13 +91,12 @@ class HardDriveRackBlockEntity :
         return super.toTag(tag)
     }
 
-    override fun fromClientTag(tag: CompoundTag) {
+    fun fromClientTag(tag: CompoundTag) {
         inv.fromTag(tag.getCompound("Items"))
         updateInventories()
-        (MinecraftClient.getInstance().player?.currentScreenHandler as? TerminalScreenHandler)?.clientPositionsToRemap?.add(pos)
     }
 
-    override fun toClientTag(tag: CompoundTag): CompoundTag {
+    fun toClientTag(tag: CompoundTag): CompoundTag {
         updateStacks()
         tag.put("Items", inv.toTag())
         return tag

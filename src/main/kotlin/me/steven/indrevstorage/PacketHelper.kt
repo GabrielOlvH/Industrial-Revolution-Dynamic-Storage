@@ -1,5 +1,7 @@
 package me.steven.indrevstorage
 
+import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap
+import me.steven.indrevstorage.api.ItemType
 import me.steven.indrevstorage.api.MappedItemType
 import me.steven.indrevstorage.blockentities.TerminalBlockEntity
 import me.steven.indrevstorage.gui.TerminalScreenHandler
@@ -7,7 +9,7 @@ import me.steven.indrevstorage.utils.identifier
 import me.steven.indrevstorage.utils.interactTerminalWithCursor
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking
-import net.minecraft.util.math.BlockPos
+import net.minecraft.util.registry.Registry
 
 object PacketHelper {
 
@@ -29,13 +31,15 @@ object PacketHelper {
         }
 
         ServerPlayNetworking.registerGlobalReceiver(UPDATE_FILTER_TERMINAL) { server, player, _, buf, _ ->
-            val size = buf.readByte().toInt()
+            val size = buf.readInt()
             val order = IntArray(size)
-            repeat(size) { index -> order[index] = buf.readByte().toInt() }
+            repeat(size) { index -> order[index] = buf.readInt() }
             server.execute {
                 val screenHandler = player.currentScreenHandler as? TerminalScreenHandler ?: return@execute
+                // causes mappedTypes list to resort itself
+                screenHandler.remap()
                 val newList = ArrayList<MappedItemType>(size)
-                order.forEach { i -> newList.add(screenHandler.sortedByIdTypes[i]) }
+                order.forEach { i -> newList.add(screenHandler.mappedTypes[i]) }
                 screenHandler.mappedTypes = newList
             }
         }
@@ -43,12 +47,19 @@ object PacketHelper {
 
     fun registerClient() {
         ClientPlayNetworking.registerGlobalReceiver(REMAP_SCREEN_HANDLER) { client, _, buf, _ ->
-            val positions = hashSetOf<BlockPos>()
+            val map = Object2IntOpenHashMap<ItemType>()
             val size = buf.readInt()
-            for (x in 0 until size) positions.add(buf.readBlockPos())
+            for (x in 0 until size) {
+                val itemId = buf.readInt()
+                val count = buf.readInt()
+                val hasTag = buf.readBoolean()
+                val tag = if(hasTag) buf.readCompoundTag() else null
+                val item = Registry.ITEM.get(itemId)
+                map[ItemType(item, tag)] = count
+            }
             client.execute {
                 val screenHandler = client.player?.currentScreenHandler as? TerminalScreenHandler ?: return@execute
-                screenHandler.remap(positions)
+                screenHandler.remap(map)
             }
         }
     }

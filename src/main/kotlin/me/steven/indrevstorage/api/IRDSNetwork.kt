@@ -1,13 +1,20 @@
 package me.steven.indrevstorage.api
 
+import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap
 import me.steven.indrev.networks.Network
 import me.steven.indrevstorage.IRDynamicStorage
+import me.steven.indrevstorage.PacketHelper
 import me.steven.indrevstorage.blockentities.HardDriveRackBlockEntity
+import me.steven.indrevstorage.gui.TerminalScreenHandler
 import me.steven.indrevstorage.utils.componentOf
+import net.fabricmc.fabric.api.networking.v1.PacketByteBufs
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking
 import net.minecraft.block.BlockState
+import net.minecraft.server.network.ServerPlayerEntity
 import net.minecraft.server.world.ServerWorld
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
+import net.minecraft.util.registry.Registry
 import kotlin.reflect.KClass
 
 class IRDSNetwork(world: ServerWorld) : Network(STORAGE, world) {
@@ -43,6 +50,10 @@ class IRDSNetwork(world: ServerWorld) : Network(STORAGE, world) {
         }
     }
 
+    fun markDirty() {
+        this.dirty = true
+    }
+
     inline fun <T : Any> forEach(kclass: KClass<T>, f: (T?) -> Unit) {
         containers.forEach { (pos, _) ->
             val rack = componentOf(world, pos, null)?.convert(kclass)
@@ -50,12 +61,31 @@ class IRDSNetwork(world: ServerWorld) : Network(STORAGE, world) {
         }
     }
 
-    fun syncHDRacks() {
-       forEach(HardDriveRackBlockEntity::class) { rack ->
-            rack?.markDirty()
-            rack?.sync()
-            dirty = true
+    // CHANGE OF PLANS:
+    // 1. REMAP THE SCREEN HANDLER ON THE SERVER
+    // 2. SEND TO CLIENT
+    // 3. APPLY FILTER TO CLIENT
+    // 4. SEND ORDER BACK TO SERVER
+    fun syncHDRacks(screenHandler: TerminalScreenHandler, player: ServerPlayerEntity) {
+        screenHandler.remap()
+        val map = Object2IntOpenHashMap<ItemType>()
+
+
+        val buf = PacketByteBufs.create()
+        forEach(HardDriveRackBlockEntity::class) { rack ->
+            rack?.drivesInv?.forEach { inv ->
+                inv?.forEach { type, count -> map.addTo(type, count) }
+            }
         }
+        buf.writeInt(map.size)
+        map.forEach { (type, count) ->
+            buf.writeInt(Registry.ITEM.getRawId(type.item))
+            buf.writeInt(count)
+            buf.writeBoolean(type.tag != null)
+            if (type.tag != null)
+                buf.writeCompoundTag(type.tag)
+        }
+        ServerPlayNetworking.send(player, PacketHelper.REMAP_SCREEN_HANDLER, buf)
     }
 
     companion object {
