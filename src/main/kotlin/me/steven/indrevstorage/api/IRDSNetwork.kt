@@ -61,13 +61,9 @@ class IRDSNetwork(world: ServerWorld) : Network(STORAGE, world) {
         }
     }
 
-    // CHANGE OF PLANS:
-    // 1. REMAP THE SCREEN HANDLER ON THE SERVER
-    // 2. SEND TO CLIENT
-    // 3. APPLY FILTER TO CLIENT
-    // 4. SEND ORDER BACK TO SERVER
+
     fun syncHDRacks(screenHandler: TerminalScreenHandler, player: ServerPlayerEntity) {
-        screenHandler.remap()
+        screenHandler.remapServer()
         val map = Object2IntOpenHashMap<ItemType>()
 
 

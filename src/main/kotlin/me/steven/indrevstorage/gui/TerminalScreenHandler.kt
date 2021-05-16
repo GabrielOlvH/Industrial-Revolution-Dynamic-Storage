@@ -3,17 +3,18 @@ package me.steven.indrevstorage.gui
 import io.github.cottonmc.cotton.gui.SyncedGuiDescription
 import io.github.cottonmc.cotton.gui.widget.WGridPanel
 import io.github.cottonmc.cotton.gui.widget.WScrollPanel
-import io.github.cottonmc.cotton.gui.widget.WTextField
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap
 import me.steven.indrevstorage.IRDynamicStorage
 import me.steven.indrevstorage.PacketHelper
 import me.steven.indrevstorage.api.IRDSInventory
 import me.steven.indrevstorage.api.ItemType
-import me.steven.indrevstorage.api.MappedItemType
+import me.steven.indrevstorage.api.gui.CountedItemType
+import me.steven.indrevstorage.api.gui.StoredItemType
 import me.steven.indrevstorage.blockentities.HardDriveRackBlockEntity
 import me.steven.indrevstorage.blockentities.TerminalBlockEntity
 import me.steven.indrevstorage.gui.widgets.WIRDSInventorySlot
+import me.steven.indrevstorage.gui.widgets.WTerminalSearchBar
 import me.steven.indrevstorage.utils.componentOf
 import me.steven.indrevstorage.utils.identifier
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking
@@ -22,7 +23,6 @@ import net.fabricmc.fabric.api.util.TriState
 import net.minecraft.client.resource.language.I18n
 import net.minecraft.entity.player.PlayerInventory
 import net.minecraft.screen.ScreenHandlerContext
-import net.minecraft.text.LiteralText
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.registry.Registry
 import net.minecraft.world.World
@@ -36,90 +36,84 @@ class TerminalScreenHandler(syncId: Int, playerInventory: PlayerInventory, world
     getBlockPropertyDelegate(ScreenHandlerContext.create(world, pos))
 ) {
 
-    private val nRows: Int get() = ceil((mappedTypes.size / 9.0)).toInt().coerceAtLeast(5)
-
     var sortedByIdTypes = emptyList<ItemType>()
-    var mappedTypes = emptyList<MappedItemType>()
-    var clientThing = emptyList<Pair<ItemType, Int>>()
 
-    var lastSearch = ""
-    val searchText = object : WTextField(LiteralText("Search...")) {
-        override fun setSize(x: Int, y: Int) {
-            this.width = x
-            this.height = y
-        }
-    }
-    var slotsPanel = WGridPanel()
-    var scrollPanel = WScrollPanel(slotsPanel)
-    val panel = object : WGridPanel() { override fun tick() = clientTick() }
+    var serverCache = emptyList<StoredItemType>()
+    var clientCache = emptyList<CountedItemType>()
+    var filteredClientCache = emptyList<CountedItemType>()
+
+    private var lastSearch = ""
+    private val searchText = WTerminalSearchBar()
+    private var slotsPanel = WGridPanel()
+    private var scrollPanel = WScrollPanel(slotsPanel)
+    private val panel = TerminalBasePanel()
 
     init {
         buildPanel()
     }
 
-    fun remap() {
-        val terminal = componentOf(world, pos, null)!!.convert(TerminalBlockEntity::class)
-        val positions = hashSetOf<BlockPos>()
-        terminal?.network?.forEach(HardDriveRackBlockEntity::class) { be -> if (be != null) positions.add(be.pos) }
+    fun remapServer() {
         val map = Object2ObjectOpenHashMap<ItemType, HashSet<IRDSInventory>>()
-        positions.forEach { pos ->
-            componentOf(world, pos, null)?.convert(HardDriveRackBlockEntity::class)?.drivesInv?.forEach { inv ->
+        val terminal = componentOf(world, pos, null)!!.convert(TerminalBlockEntity::class)
+        terminal?.network?.forEach(HardDriveRackBlockEntity::class) { rack ->
+            rack?.drivesInv?.forEach { inv ->
                 inv?.forEach { type, _ -> map.computeIfAbsent(type) { HashSet() }.add(inv) }
             }
         }
+
         sortedByIdTypes = map.map { it.key }
             .sortedWith(compareBy { Registry.ITEM.getRawId(it.item) })
-        val before = nRows
-        mappedTypes = map.map { MappedItemType(it.key, it.value) }
-            .sortedWith(compareBy { Registry.ITEM.getRawId(it.type.item) })
-        val after = nRows
 
-        if (after != before) {
-            rebuildTerminalSlots()
-        }
+        val before = getRows(false)
+        serverCache = map.map { StoredItemType(it.key, it.value) }
+            .sortedWith(compareBy { Registry.ITEM.getRawId(it.type.item) })
+        val after = getRows(false)
+
+        rebuildTerminalSlots(before, after)
     }
 
-    fun remap(map: Object2IntOpenHashMap<ItemType>) {
-        val before = nRows
+    fun remapClient(map: Object2IntOpenHashMap<ItemType>) {
+        val before = getRows(true)
 
         sortedByIdTypes = map.map { it.key }
             .sortedWith(compareBy { Registry.ITEM.getRawId(it.item) })
 
-        this.clientThing = map.object2IntEntrySet()
-            .map { (key, value) -> key to value }
-            .sortedWith(compareBy { Registry.ITEM.getRawId(it.first.item) })
+        this.clientCache = map.object2IntEntrySet()
+            .map { (key, value) -> key.withCount(value) }
+            .sortedWith(compareBy { Registry.ITEM.getRawId(it.type.item) })
 
         if (world.isClient) {
             applyFilter()
         }
 
-        val after = nRows
+        val after = getRows(true)
 
-        if (after != before) {
-            rebuildTerminalSlots()
-        }
+        rebuildTerminalSlots(before, after)
     }
 
     private fun applyFilter() {
-        clientThing = clientThing
-            .sortedWith(compareByDescending { it.second })
-            .filter { I18n.translate(it.first.item.translationKey).toLowerCase().startsWith(lastSearch.toLowerCase()) }
+        filteredClientCache = clientCache
+            .sortedWith(compareByDescending { it.count })
+            .filter { lastSearch.isEmpty() || I18n.translate(it.type.item.translationKey).toLowerCase().startsWith(lastSearch.toLowerCase()) }
 
         val buf = PacketByteBufs.create()
-        buf.writeInt(clientThing.size)
-        clientThing.forEach {
-            val indexOf = sortedByIdTypes.indexOf(it.first)
+        buf.writeInt(filteredClientCache.size)
+        filteredClientCache.forEach {
+            val indexOf = sortedByIdTypes.indexOf(it.type)
             if (indexOf >= 0) buf.writeInt(indexOf)
         }
         ClientPlayNetworking.send(PacketHelper.UPDATE_FILTER_TERMINAL, buf)
     }
 
-    private fun rebuildTerminalSlots() {
+    private fun getRows(client: Boolean) = ceil((if (client) filteredClientCache else serverCache).size / 9.0).coerceAtLeast(5.0).toInt()
+
+    private fun rebuildTerminalSlots(before: Int, after: Int) {
+        if (before == after) return
         var index = 0
         panel.remove(scrollPanel)
         slotsPanel = WGridPanel()
         scrollPanel = WScrollPanel(slotsPanel)
-        for (y in 0 until nRows)
+        for (y in 0 until after)
             for (x in 0 until 9)
                 slotsPanel.add(WIRDSInventorySlot(this, index++), x, y)
         scrollPanel.isScrollingVertically = TriState.TRUE
@@ -133,7 +127,7 @@ class TerminalScreenHandler(syncId: Int, playerInventory: PlayerInventory, world
 
         this.rootPanel = panel
 
-        rebuildTerminalSlots()
+        rebuildTerminalSlots(0, getRows(world.isClient))
 
         panel.add(searchText, 0, 0)
         searchText.setSize(9 * 18 + 8, 16)
@@ -143,12 +137,13 @@ class TerminalScreenHandler(syncId: Int, playerInventory: PlayerInventory, world
         panel.validate(this)
     }
 
-    private fun clientTick() {
-        if (lastSearch != searchText.text) {
-            lastSearch = searchText.text
-            applyFilter()
+    inner class TerminalBasePanel : WGridPanel() {
+        override fun tick() {
+            if (lastSearch != searchText.text) {
+                lastSearch = searchText.text
+                applyFilter()
+            }
         }
-
     }
 
     companion object {

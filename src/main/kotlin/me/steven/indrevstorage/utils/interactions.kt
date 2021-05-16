@@ -2,7 +2,7 @@ package me.steven.indrevstorage.utils
 
 import me.steven.indrevstorage.api.IRDSNetwork
 import me.steven.indrevstorage.api.ItemType
-import me.steven.indrevstorage.api.MappedItemType
+import me.steven.indrevstorage.api.gui.StoredItemType
 import me.steven.indrevstorage.blockentities.HardDriveRackBlockEntity
 import me.steven.indrevstorage.blockentities.TerminalBlockEntity
 import me.steven.indrevstorage.gui.TerminalScreenHandler
@@ -10,7 +10,7 @@ import net.minecraft.item.ItemStack
 import net.minecraft.server.network.ServerPlayerEntity
 
 fun interactTerminalWithCursor(player: ServerPlayerEntity, network: IRDSNetwork, blockEntity: TerminalBlockEntity, screenHandler: TerminalScreenHandler, index: Int, isCrouching: Boolean) {
-    val (type, invs) = if (index >= screenHandler.mappedTypes.size) MappedItemType.EMPTY else screenHandler.mappedTypes[index]
+    val (type, invs) = if (index >= screenHandler.serverCache.size) StoredItemType.EMPTY else screenHandler.serverCache[index]
     val cursorStack = player.inventory.cursorStack
     if (cursorStack.isEmpty) {
         // EXTRACT

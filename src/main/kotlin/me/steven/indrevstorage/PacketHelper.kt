@@ -2,7 +2,7 @@ package me.steven.indrevstorage
 
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap
 import me.steven.indrevstorage.api.ItemType
-import me.steven.indrevstorage.api.MappedItemType
+import me.steven.indrevstorage.api.gui.StoredItemType
 import me.steven.indrevstorage.blockentities.TerminalBlockEntity
 import me.steven.indrevstorage.gui.TerminalScreenHandler
 import me.steven.indrevstorage.utils.identifier
@@ -37,10 +37,10 @@ object PacketHelper {
             server.execute {
                 val screenHandler = player.currentScreenHandler as? TerminalScreenHandler ?: return@execute
                 // causes mappedTypes list to resort itself
-                screenHandler.remap()
-                val newList = ArrayList<MappedItemType>(size)
-                order.forEach { i -> newList.add(screenHandler.mappedTypes[i]) }
-                screenHandler.mappedTypes = newList
+                screenHandler.remapServer()
+                val newList = ArrayList<StoredItemType>(size)
+                order.forEach { i -> newList.add(screenHandler.serverCache[i]) }
+                screenHandler.serverCache = newList
             }
         }
     }
@@ -59,7 +59,7 @@ object PacketHelper {
             }
             client.execute {
                 val screenHandler = client.player?.currentScreenHandler as? TerminalScreenHandler ?: return@execute
-                screenHandler.remap(map)
+                screenHandler.remapClient(map)
             }
         }
     }
