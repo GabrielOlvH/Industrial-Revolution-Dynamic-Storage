@@ -3,7 +3,6 @@ package me.steven.indrevstorage.utils
 import me.steven.indrevstorage.api.IRDSNetwork
 import me.steven.indrevstorage.api.ItemType
 import me.steven.indrevstorage.api.gui.TerminalConnection
-import me.steven.indrevstorage.blockentities.HardDriveRackBlockEntity
 import net.minecraft.item.ItemStack
 import net.minecraft.server.network.ServerPlayerEntity
 
@@ -13,16 +12,7 @@ fun interactTerminalWithCursor(player: ServerPlayerEntity, network: IRDSNetwork,
     if (cursorStack.isEmpty) {
         // EXTRACT
         val maxAmount = if (isCrouching) 64 else 1
-        var extracted = 0
-        val it = network.iterator(HardDriveRackBlockEntity::class)
-        outer@while (it.hasNext()) {
-            val rack = it.next()
-            for (inv in rack.drivesInv.sortedByDescending { it?.has(type) }.filterNotNull()) {
-                val c = inv[type]
-                extracted += inv.extract(type, c.coerceAtMost(maxAmount))
-                if (extracted >= maxAmount) break@outer
-            }
-        }
+        val extracted = network.extract(type, maxAmount)
         if (extracted > 0) {
             player.inventory.cursorStack = type.toItemStack(extracted)
             player.updateCursorStack()
@@ -31,20 +21,12 @@ fun interactTerminalWithCursor(player: ServerPlayerEntity, network: IRDSNetwork,
     } else {
         // INSERT
         val typeToInsert = ItemType(cursorStack.item, cursorStack.tag)
-        var remaining = cursorStack.count
+        val remaining = network.insert(typeToInsert, cursorStack.count)
 
-        val it = network.iterator(HardDriveRackBlockEntity::class)
-        outer@while (it.hasNext()) {
-            val rack = it.next()
-            for (inv in rack.drivesInv.sortedByDescending { it?.has(typeToInsert) }.filterNotNull()) {
-                remaining = inv.insert(typeToInsert, remaining)
-                if (remaining <= 0)
-                    break@outer
-            }
+        if (remaining != cursorStack.count) {
+            player.inventory.cursorStack = if (remaining == 0) ItemStack.EMPTY else ItemStack(cursorStack.item, remaining)
+            player.updateCursorStack()
+            network.markDirty()
         }
-
-        player.inventory.cursorStack = ItemStack.EMPTY
-        player.updateCursorStack()
-        network.markDirty()
     }
 }

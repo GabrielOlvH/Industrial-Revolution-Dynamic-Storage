@@ -61,7 +61,6 @@ class IRDSNetwork(world: ServerWorld) : Network(STORAGE, world) {
         }
     }
 
-
     fun syncHDRacks(screenHandler: TerminalScreenHandler, player: ServerPlayerEntity) {
         screenHandler.connection.updateServer()
         val map = Object2IntOpenHashMap<ItemType>()
@@ -82,6 +81,34 @@ class IRDSNetwork(world: ServerWorld) : Network(STORAGE, world) {
                 buf.writeCompoundTag(type.tag)
         }
         ServerPlayNetworking.send(player, PacketHelper.REMAP_SCREEN_HANDLER, buf)
+    }
+
+    fun insert(type: ItemType, count: Int): Int {
+        var remaining = count
+        val it = iterator(HardDriveRackBlockEntity::class)
+        outer@while (it.hasNext()) {
+            val rack = it.next()
+            for (inv in rack.drivesInv.sortedByDescending { it?.has(type) }.filterNotNull()) {
+                remaining = inv.insert(type, remaining)
+                if (remaining <= 0)
+                    break@outer
+            }
+        }
+        return remaining
+    }
+
+    fun extract(type: ItemType, count: Int): Int {
+        var extracted = 0
+        val it = iterator(HardDriveRackBlockEntity::class)
+        outer@while (it.hasNext()) {
+            val rack = it.next()
+            for (inv in rack.drivesInv.filterNotNull()) {
+                val c = inv[type]
+                extracted += inv.extract(type, c.coerceAtMost(count))
+                if (extracted >= count) break@outer
+            }
+        }
+        return extracted
     }
 
     companion object {
