@@ -23,7 +23,7 @@ class WIRDSInventorySlot(private val handler: TerminalScreenHandler, val index: 
     }
 
     private fun renderItem(matrices: MatrixStack, x: Int, y: Int) {
-        val (type, count) = if (handler.filteredClientCache.size <= index) return else handler.filteredClientCache[index]
+        val (type, count) = if (handler.connection.clientCache.size <= index) return else handler.connection.clientCache[index]
         val client = MinecraftClient.getInstance()
         client.itemRenderer.renderGuiItemIcon(type.toItemStack(), x + 1, y + 1)
         val renderer = client.textRenderer

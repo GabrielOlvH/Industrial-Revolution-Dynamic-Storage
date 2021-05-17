@@ -63,7 +63,7 @@ class IRDSNetwork(world: ServerWorld) : Network(STORAGE, world) {
 
 
     fun syncHDRacks(screenHandler: TerminalScreenHandler, player: ServerPlayerEntity) {
-        screenHandler.remapServer()
+        screenHandler.connection.updateServer()
         val map = Object2IntOpenHashMap<ItemType>()
 
 

@@ -2,7 +2,6 @@ package me.steven.indrevstorage
 
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap
 import me.steven.indrevstorage.api.ItemType
-import me.steven.indrevstorage.api.gui.StoredItemType
 import me.steven.indrevstorage.blockentities.TerminalBlockEntity
 import me.steven.indrevstorage.gui.TerminalScreenHandler
 import me.steven.indrevstorage.utils.identifier
@@ -26,7 +25,7 @@ object PacketHelper {
                 val screenHandler = player.currentScreenHandler as? TerminalScreenHandler ?: return@execute
                 val blockEntity = player.world.getBlockEntity(screenHandler.pos) as? TerminalBlockEntity ?: return@execute
                 val network = blockEntity.network ?: return@execute
-                interactTerminalWithCursor(player, network, blockEntity, screenHandler, index, isCrouching)
+                interactTerminalWithCursor(player, network, screenHandler.connection, index, isCrouching)
             }
         }
 
@@ -37,10 +36,11 @@ object PacketHelper {
             server.execute {
                 val screenHandler = player.currentScreenHandler as? TerminalScreenHandler ?: return@execute
                 // causes mappedTypes list to resort itself
-                screenHandler.remapServer()
-                val newList = ArrayList<StoredItemType>(size)
-                order.forEach { i -> newList.add(screenHandler.serverCache[i]) }
-                screenHandler.serverCache = newList
+                val conn = screenHandler.connection
+                conn.updateServer()
+                val newList = ArrayList<ItemType>(size)
+                order.forEach { i -> newList.add(conn.serverCache[i]) }
+                conn.serverCache = newList
             }
         }
     }
@@ -59,7 +59,7 @@ object PacketHelper {
             }
             client.execute {
                 val screenHandler = client.player?.currentScreenHandler as? TerminalScreenHandler ?: return@execute
-                screenHandler.remapClient(map)
+                screenHandler.connection.updateClient(map)
             }
         }
     }
