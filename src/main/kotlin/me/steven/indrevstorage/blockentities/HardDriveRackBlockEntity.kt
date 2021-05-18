@@ -90,15 +90,4 @@ class HardDriveRackBlockEntity :
         tag.put("Items", inv.toTag())
         return super.toTag(tag)
     }
-
-    fun fromClientTag(tag: CompoundTag) {
-        inv.fromTag(tag.getCompound("Items"))
-        updateInventories()
-    }
-
-    fun toClientTag(tag: CompoundTag): CompoundTag {
-        updateStacks()
-        tag.put("Items", inv.toTag())
-        return tag
-    }
 }

@@ -6,10 +6,10 @@ import me.steven.indrevstorage.api.ItemType
 import me.steven.indrevstorage.blockentities.HardDriveRackBlockEntity
 import me.steven.indrevstorage.blockentities.TerminalBlockEntity
 import me.steven.indrevstorage.gui.TerminalScreenHandler
+import me.steven.indrevstorage.utils.SearchTerm
 import me.steven.indrevstorage.utils.componentOf
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs
-import net.minecraft.client.resource.language.I18n
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.registry.Registry
 import net.minecraft.world.World
@@ -107,9 +107,9 @@ class TerminalConnection(val world: World, val pos: BlockPos, val screenHandler:
         clientCache = clientCacheSortedById
             .sortedWith(compareByDescending { it.count })
         if (screenHandler.currentSearch.isNotEmpty()) {
-            val search = screenHandler.currentSearch.toLowerCase()
+            val search = SearchTerm(screenHandler.currentSearch.toLowerCase())
             clientCache = clientCache
-                .filter { I18n.translate(it.type.item.translationKey).toLowerCase().startsWith(search) }
+                .filter { search.matches(it.type) }
         }
 
         val buf = PacketByteBufs.create()
