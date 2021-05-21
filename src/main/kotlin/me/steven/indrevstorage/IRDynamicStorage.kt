@@ -1,6 +1,7 @@
 package me.steven.indrevstorage
 
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap
+import me.steven.indrevstorage.api.IRDSNetwork
 import me.steven.indrevstorage.api.StorageNetworkComponent
 import me.steven.indrevstorage.blockentities.HardDriveRackBlockEntity
 import me.steven.indrevstorage.blockentities.TerminalBlockEntity
@@ -17,6 +18,7 @@ import me.steven.indrevstorage.utils.*
 import net.fabricmc.api.ModInitializer
 import net.fabricmc.fabric.api.client.itemgroup.FabricItemGroupBuilder
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents
 import net.fabricmc.fabric.api.lookup.v1.block.BlockApiCache
 import net.fabricmc.fabric.api.lookup.v1.block.BlockApiLookup
 import net.fabricmc.fabric.api.screenhandler.v1.ScreenHandlerRegistry
@@ -73,5 +75,9 @@ object IRDynamicStorage : ModInitializer {
         PacketHelper.registerServer()
 
         ServerTickEvents.START_WORLD_TICK.register(IRDSStartWorldTick)
+
+        ServerWorldEvents.LOAD.register { _, world ->
+            IRDSNetwork.STORAGE.getNetworkState(world)
+        }
     }
 }
