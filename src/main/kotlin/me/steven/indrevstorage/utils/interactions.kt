@@ -61,22 +61,13 @@ fun interactWormHoleDevice(network: IRDSNetwork, world: ServerWorld, stack: Item
             val extracted = network.extract(itemType, 1)
             assert(extracted == 1)
             if (!result.value.isEmpty) {
-                val resultStack = result.value
-                val remainder = network.insert(resultStack.item with resultStack.tag, resultStack.count)
-                if (remainder > 0) {
-                    val unableToInsert = ItemStack(resultStack.item, remainder).also { it.tag = resultStack.tag }
-                    dropItem(world, context.blockPos, unableToInsert)
-                }
+                insertOrDrop(network, world, context.blockPos, result.value)
                 fakePlayer.setStackInHand(Hand.MAIN_HAND, ItemStack.EMPTY)
             }
             (0 until fakePlayer.inventory.size()).forEach { slot ->
                 val invStack = fakePlayer.inventory.getStack(slot)
                 if (!invStack.isEmpty) {
-                    val remainder = network.insert(invStack.item with invStack.tag, invStack.count)
-                    if (remainder > 0) {
-                        val unableToInsert = ItemStack(invStack.item, remainder).also { it.tag = invStack.tag }
-                        dropItem(world, context.blockPos, unableToInsert)
-                    }
+                    insertOrDrop(network, world, context.blockPos, invStack)
                     fakePlayer.inventory.setStack(slot, ItemStack.EMPTY)
                 }
             }
@@ -85,4 +76,12 @@ fun interactWormHoleDevice(network: IRDSNetwork, world: ServerWorld, stack: Item
         return result.result
     }
     return ActionResult.success(world.isClient)
+}
+
+private fun insertOrDrop(network: IRDSNetwork, world: ServerWorld, blockPos: BlockPos, itemStack: ItemStack) {
+    val remainder = network.insert(itemStack.item with itemStack.tag, itemStack.count)
+    if (remainder > 0) {
+        val unableToInsert = ItemStack(itemStack.item, remainder).also { it.tag = itemStack.tag }
+        dropItem(world, blockPos, unableToInsert)
+    }
 }
