@@ -1,7 +1,7 @@
 package me.steven.indrevstorage.blocks
 
 import me.steven.indrevstorage.blockentities.TerminalBlockEntity
-import me.steven.indrevstorage.gui.TerminalScreenHandler
+import me.steven.indrevstorage.gui.InventoryTerminalScreenHandler
 import me.steven.indrevstorage.utils.blockSettings
 import me.steven.indrevstorage.utils.componentOf
 import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerFactory
@@ -32,7 +32,7 @@ class TerminalBlock : Block(blockSettings(Material.GLASS)), BlockEntityProvider 
         if (!world.isClient) {
             player.openHandledScreen(object : ExtendedScreenHandlerFactory {
                 override fun createMenu(syncId: Int, inv: PlayerInventory, player: PlayerEntity?): ScreenHandler {
-                    return TerminalScreenHandler(syncId, inv, world, pos)
+                    return InventoryTerminalScreenHandler(syncId, inv, world, pos)
                 }
 
                 override fun getDisplayName(): Text = LiteralText.EMPTY
@@ -41,12 +41,12 @@ class TerminalBlock : Block(blockSettings(Material.GLASS)), BlockEntityProvider 
                     buf.writeBlockPos(pos)
                 }
             })
-            postOpenScreen(world, pos, player)
+            postOpenScreen(world, pos)
         }
         return ActionResult.success(world.isClient)
     }
 
-    private fun postOpenScreen(world: World, pos: BlockPos, player: PlayerEntity) {
+    private fun postOpenScreen(world: World, pos: BlockPos) {
         val terminal = componentOf(world, pos, null)!!.convert(TerminalBlockEntity::class)
         val network = terminal?.network ?: return
         network.markDirty()

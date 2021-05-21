@@ -4,12 +4,14 @@ import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap
 import me.steven.indrevstorage.IRDynamicStorage
 import me.steven.indrevstorage.api.ItemType
 import me.steven.indrevstorage.api.StorageNetworkComponent
+import me.steven.indrevstorage.mixin.AccessorItemUsageContext
 import net.fabricmc.fabric.api.`object`.builder.v1.block.FabricBlockSettings
 import net.fabricmc.fabric.api.lookup.v1.block.BlockApiCache
 import net.minecraft.block.Block
 import net.minecraft.block.Material
 import net.minecraft.block.entity.BlockEntityType
 import net.minecraft.item.Item
+import net.minecraft.item.ItemUsageContext
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.server.world.ServerWorld
 import net.minecraft.util.Identifier
@@ -24,6 +26,8 @@ fun identifier(path: String) = Identifier(IRDynamicStorage.MOD_ID, path)
 fun itemSettings(): Item.Settings = Item.Settings().group(IRDynamicStorage.ITEM_GROUP)
 
 fun blockSettings(material: Material) = FabricBlockSettings.of(material)
+
+val ItemUsageContext.blockHitResult get() = (this as AccessorItemUsageContext).indrevstorage_getHitResult()
 
 fun Identifier.item(item: Item): Identifier {
     Registry.register(Registry.ITEM, this, item)

@@ -5,7 +5,7 @@ import me.steven.indrevstorage.PacketHelper
 import me.steven.indrevstorage.api.ItemType
 import me.steven.indrevstorage.blockentities.HardDriveRackBlockEntity
 import me.steven.indrevstorage.blockentities.TerminalBlockEntity
-import me.steven.indrevstorage.gui.TerminalScreenHandler
+import me.steven.indrevstorage.gui.AbstractTerminalScreenHandler
 import me.steven.indrevstorage.utils.SearchTerm
 import me.steven.indrevstorage.utils.componentOf
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking
@@ -35,7 +35,7 @@ import kotlin.math.ceil
  *      If the cursor stack is empty, the server will try to extract the ItemType from that index
  *      If the cursor stack is not empty, the server will try to insert the ItemType matching the cursor stack
  */
-class TerminalConnection(val world: World, val pos: BlockPos, val screenHandler: TerminalScreenHandler) {
+class TerminalConnection(val world: World, val pos: BlockPos, val screenHandler: () -> AbstractTerminalScreenHandler) {
     /**
      * Used by both client and server as sorting base
      *
@@ -83,7 +83,7 @@ class TerminalConnection(val world: World, val pos: BlockPos, val screenHandler:
             .sortedWith(compareBy { Registry.ITEM.getRawId(it.item) })
         val after = getRowCount(false)
 
-        screenHandler.rebuildTerminalSlots(before, after)
+        screenHandler().rebuildTerminalSlots(before, after)
     }
 
     fun updateClient(map: Object2IntOpenHashMap<ItemType>) {
@@ -100,14 +100,14 @@ class TerminalConnection(val world: World, val pos: BlockPos, val screenHandler:
 
         val after = getRowCount(true)
 
-        screenHandler.rebuildTerminalSlots(before, after)
+        screenHandler().rebuildTerminalSlots(before, after)
     }
 
     fun applyFilter() {
         clientCache = clientCacheSortedById
             .sortedWith(compareByDescending { it.count })
-        if (screenHandler.currentSearch.isNotEmpty()) {
-            val search = SearchTerm(screenHandler.currentSearch.toLowerCase())
+        if (screenHandler().currentSearch.isNotEmpty()) {
+            val search = SearchTerm(screenHandler().currentSearch.toLowerCase())
             clientCache = clientCache
                 .filter { search.matches(it.type) }
         }

@@ -3,11 +3,8 @@ package me.steven.indrevstorage.api.impl
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap
 import me.steven.indrevstorage.api.IRDSInventory
 import me.steven.indrevstorage.api.ItemType
-import me.steven.indrevstorage.utils.with
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.nbt.ListTag
-import net.minecraft.util.Identifier
-import net.minecraft.util.registry.Registry
 
 class IRDSHardDriveInventory(private val map: Object2IntOpenHashMap<ItemType> = Object2IntOpenHashMap()) : IRDSInventory {
 
@@ -37,10 +34,7 @@ class IRDSHardDriveInventory(private val map: Object2IntOpenHashMap<ItemType> = 
     fun toNbt(): ListTag {
         val list = ListTag()
         map.forEach { (type, count) ->
-            val t = CompoundTag()
-            t.putString("id", Registry.ITEM.getId(type.item).toString())
-            if (type.tag != null)
-                t.put("tag", type.tag)
+            val t = type.toNbt()
             t.putInt("c", count)
             list.add(t)
         }
@@ -51,10 +45,8 @@ class IRDSHardDriveInventory(private val map: Object2IntOpenHashMap<ItemType> = 
         fun fromNbt(inv: IRDSHardDriveInventory, list: ListTag) {
             list.forEach { entry ->
                 if (entry !is CompoundTag) return@forEach
-                val item = Registry.ITEM.get(Identifier(entry.getString("id")))
-                val tag = if (entry.contains("tag")) entry.getCompound("tag") else null
+                val itemType = ItemType.fromNbt(entry)
                 val count = entry.getInt("c")
-                val itemType = item with tag
                 inv.map.addTo(itemType, count)
             }
         }

@@ -5,7 +5,7 @@ import me.steven.indrev.networks.Network
 import me.steven.indrevstorage.IRDynamicStorage
 import me.steven.indrevstorage.PacketHelper
 import me.steven.indrevstorage.blockentities.HardDriveRackBlockEntity
-import me.steven.indrevstorage.gui.TerminalScreenHandler
+import me.steven.indrevstorage.gui.AbstractTerminalScreenHandler
 import me.steven.indrevstorage.utils.componentOf
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking
@@ -61,7 +61,7 @@ class IRDSNetwork(world: ServerWorld) : Network(STORAGE, world) {
         }
     }
 
-    fun syncHDRacks(screenHandler: TerminalScreenHandler, player: ServerPlayerEntity) {
+    fun syncHDRacks(screenHandler: AbstractTerminalScreenHandler, player: ServerPlayerEntity) {
         screenHandler.connection.updateServer()
         val map = Object2IntOpenHashMap<ItemType>()
 
@@ -109,6 +109,17 @@ class IRDSNetwork(world: ServerWorld) : Network(STORAGE, world) {
             }
         }
         return extracted
+    }
+
+    operator fun get(type: ItemType): Int {
+        var total = 0
+        forEach(HardDriveRackBlockEntity::class) { rack ->
+            if (rack != null)
+                for (inv in rack.drivesInv.filterNotNull()) {
+                    total += inv[type]
+                }
+        }
+        return total
     }
 
     companion object {

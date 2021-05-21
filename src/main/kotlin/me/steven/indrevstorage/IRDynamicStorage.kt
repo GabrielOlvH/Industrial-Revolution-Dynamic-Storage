@@ -9,8 +9,10 @@ import me.steven.indrevstorage.blocks.StorageNetworkCable
 import me.steven.indrevstorage.blocks.TerminalBlock
 import me.steven.indrevstorage.events.IRDSStartWorldTick
 import me.steven.indrevstorage.gui.HardDriveRackScreenHandler
-import me.steven.indrevstorage.gui.TerminalScreenHandler
+import me.steven.indrevstorage.gui.InventoryTerminalScreenHandler
+import me.steven.indrevstorage.gui.WormHoleDeviceSelectorScreenHandler
 import me.steven.indrevstorage.items.HardDriveItem
+import me.steven.indrevstorage.items.WormHoleDeviceItem
 import me.steven.indrevstorage.utils.*
 import net.fabricmc.api.ModInitializer
 import net.fabricmc.fabric.api.client.itemgroup.FabricItemGroupBuilder
@@ -47,7 +49,10 @@ object IRDynamicStorage : ModInitializer {
     val TERMINAL = TerminalBlock()
     val TERMINAL_ITEM = BlockItem(TERMINAL, itemSettings())
     val TERMINAL_BLOCK_ENTITY = BlockEntityType.Builder.create({ TerminalBlockEntity() }, TERMINAL).build(null)
-    val TERMINAL_SCREEN_HANDLER =  ScreenHandlerRegistry.registerExtended(TerminalScreenHandler.SCREEN_ID) { syncId, inv, buf -> TerminalScreenHandler(syncId, inv, inv.player.world, buf.readBlockPos()) }
+    val TERMINAL_SCREEN_HANDLER =  ScreenHandlerRegistry.registerExtended(InventoryTerminalScreenHandler.SCREEN_ID) { syncId, inv, buf -> InventoryTerminalScreenHandler(syncId, inv, inv.player.world, buf.readBlockPos()) }
+
+    val WORM_HOLE_DEVICE_ITEM = WormHoleDeviceItem()
+    val WORM_HOLE_DEVICE_SCREEN_HANDLER = ScreenHandlerRegistry.registerExtended(WormHoleDeviceSelectorScreenHandler.SCREEN_ID) { syncId, inv, buf -> WormHoleDeviceSelectorScreenHandler(syncId, inv, inv.player.world, buf.readBlockPos()) }
 
     val STORAGE_CONNECTABLE: BlockApiLookup<StorageNetworkComponent, Direction?> = BlockApiLookup.get(identifier("connectable"), StorageNetworkComponent::class.java, Direction::class.java)
     val CONNECTABLE = WeakHashMap<World, Long2ObjectOpenHashMap<BlockApiCache<StorageNetworkComponent, Direction?>>>()
@@ -59,6 +64,8 @@ object IRDynamicStorage : ModInitializer {
         identifier("terminal").block(TERMINAL).blockEntityType(TERMINAL_BLOCK_ENTITY).item(TERMINAL_ITEM)
 
         identifier("cable").block(STORAGE_NETWORK_CABLE).item(STORAGE_NETWORK_CABLE_ITEM)
+
+        identifier("worm_hole_device").item(WORM_HOLE_DEVICE_ITEM)
 
         STORAGE_CONNECTABLE.registerForBlockEntities({ be, _ -> be as? HardDriveRackBlockEntity }, HARD_DRIVE_RACK_BLOCK_ENTITY)
         STORAGE_CONNECTABLE.registerForBlockEntities({ be, _ -> be as? TerminalBlockEntity }, TERMINAL_BLOCK_ENTITY)
