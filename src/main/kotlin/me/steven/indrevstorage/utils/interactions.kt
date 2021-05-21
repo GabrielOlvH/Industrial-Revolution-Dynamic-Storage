@@ -1,11 +1,14 @@
 package me.steven.indrevstorage.utils
 
 import me.steven.indrev.utils.FakePlayerEntity
+import me.steven.indrevstorage.IRDynamicStorage
 import me.steven.indrevstorage.api.IRDSNetwork
 import me.steven.indrevstorage.api.ItemType
 import me.steven.indrevstorage.api.gui.TerminalConnection
 import net.minecraft.entity.player.PlayerEntity
+import net.minecraft.entity.player.PlayerInventory
 import net.minecraft.item.ItemStack
+import net.minecraft.nbt.NbtHelper
 import net.minecraft.server.network.ServerPlayerEntity
 import net.minecraft.server.world.ServerWorld
 import net.minecraft.util.ActionResult
@@ -84,4 +87,41 @@ private fun insertOrDrop(network: IRDSNetwork, world: ServerWorld, blockPos: Blo
         val unableToInsert = ItemStack(itemStack.item, remainder).also { it.tag = itemStack.tag }
         dropItem(world, blockPos, unableToInsert)
     }
+}
+
+fun interceptInsertStack(inventory: PlayerInventory, itemStack: ItemStack): Boolean {
+    val world = inventory.player.world
+    if (world.isClient) return false
+    val cachedDeviceSlot = inventory.cachedDeviceSlot
+
+    var stack: ItemStack? = null
+    if (cachedDeviceSlot >= 0) {
+        val s = inventory.getStack(cachedDeviceSlot)
+        if (s.item == IRDynamicStorage.WORM_HOLE_DEVICE_ITEM) {
+            stack = s
+        } else inventory.cachedDeviceSlot = -1
+    }
+    if (stack == null) {
+        for (slot in 0 until inventory.size()) {
+            val s = inventory.getStack(slot)
+            if (s.item == IRDynamicStorage.WORM_HOLE_DEVICE_ITEM) {
+                stack = s
+                inventory.cachedDeviceSlot = slot
+            }
+        }
+    }
+    val tag = stack?.tag ?: return false
+    val itemType = ItemType.fromNbt(tag.getCompound("Type"))
+    if (tag.contains("Pos") && itemType.matches(itemStack)) {
+        val networkPos = NbtHelper.toBlockPos(tag.getCompound("Pos"))
+        val network = componentOf(world, networkPos, null)?.network
+        if (network != null) {
+            val remainder = network.insert(itemStack)
+            itemStack.count = remainder
+            network.markDirty()
+            return true
+        }
+    }
+
+    return false
 }

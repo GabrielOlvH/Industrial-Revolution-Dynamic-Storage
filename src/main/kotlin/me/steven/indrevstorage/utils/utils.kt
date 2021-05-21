@@ -8,12 +8,14 @@ import me.steven.indrev.utils.toVec3d
 import me.steven.indrevstorage.IRDynamicStorage
 import me.steven.indrevstorage.api.ItemType
 import me.steven.indrevstorage.api.StorageNetworkComponent
+import me.steven.indrevstorage.extensions.IRDSPlayerInventoryExtension
 import me.steven.indrevstorage.mixin.AccessorItemUsageContext
 import net.fabricmc.fabric.api.`object`.builder.v1.block.FabricBlockSettings
 import net.fabricmc.fabric.api.lookup.v1.block.BlockApiCache
 import net.minecraft.block.Block
 import net.minecraft.block.Material
 import net.minecraft.block.entity.BlockEntityType
+import net.minecraft.entity.player.PlayerInventory
 import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
 import net.minecraft.item.ItemUsageContext
@@ -67,3 +69,7 @@ fun dropItem(world: World, blockPos: BlockPos, itemStack: ItemStack) {
     val (x, y, z) = blockPos.toVec3d()
     ItemScatterer.spawn(world, x, y, z, itemStack)
 }
+
+var PlayerInventory.cachedDeviceSlot
+get() = (this as IRDSPlayerInventoryExtension).cachedDeviceSlot
+set(value) { (this as IRDSPlayerInventoryExtension).cachedDeviceSlot = value }
