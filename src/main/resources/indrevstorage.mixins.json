@@ -3,7 +3,8 @@
   "package": "me.steven.indrevstorage.mixin",
   "compatibilityLevel": "JAVA_8",
   "mixins": [
-    "AccessorItemUsageContext"
+    "AccessorItemUsageContext",
+    "AccessorSyncedGuiDescription"
   ],
   "client": [
   ],
