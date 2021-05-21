@@ -26,7 +26,7 @@ fun interactTerminalWithCursor(player: ServerPlayerEntity, network: IRDSNetwork,
         }
     } else {
         // INSERT
-        val typeToInsert = ItemType(cursorStack.item, cursorStack.tag)
+        val typeToInsert = cursorStack.item with cursorStack.tag
         val remaining = network.insert(typeToInsert, cursorStack.count)
 
         if (remaining != cursorStack.count) {

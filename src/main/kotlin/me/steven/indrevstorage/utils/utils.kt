@@ -21,6 +21,7 @@ import net.minecraft.nbt.CompoundTag
 import net.minecraft.server.world.ServerWorld
 import net.minecraft.util.Identifier
 import net.minecraft.util.ItemScatterer
+import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 import net.minecraft.util.registry.Registry
@@ -33,7 +34,7 @@ fun itemSettings(): Item.Settings = Item.Settings().group(IRDynamicStorage.ITEM_
 
 fun blockSettings(material: Material) = FabricBlockSettings.of(material)
 
-val ItemUsageContext.blockHitResult get() = (this as AccessorItemUsageContext).indrevstorage_getHitResult()
+val ItemUsageContext.blockHitResult: BlockHitResult get() = (this as AccessorItemUsageContext).indrevstorage_getHitResult()
 
 fun Identifier.item(item: Item): Identifier {
     Registry.register(Registry.ITEM, this, item)
@@ -50,7 +51,7 @@ fun Identifier.blockEntityType(blockEntityType: BlockEntityType<*>): Identifier 
     return this
 }
 
-infix fun Item.with(tag: CompoundTag?) = ItemType(this, tag)
+infix fun Item.with(tag: CompoundTag?) = ItemType(this, tag?.copy())
 
 fun componentOf(world: ServerWorld, pos: BlockPos, direction: Direction?): StorageNetworkComponent? {
     return IRDynamicStorage.CONNECTABLE.computeIfAbsent(world) { Long2ObjectOpenHashMap() }.computeIfAbsent(
