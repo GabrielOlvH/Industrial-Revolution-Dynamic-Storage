@@ -17,7 +17,7 @@ fun interactTerminalWithCursor(player: ServerPlayerEntity, network: IRDSNetwork,
     val cursorStack = player.inventory.cursorStack
     if (cursorStack.isEmpty) {
         // EXTRACT
-        val maxAmount = if (isCrouching) 64 else 1
+        val maxAmount = if (isCrouching) type.item.maxCount else 1
         val extracted = network.extract(type, maxAmount)
         if (extracted > 0) {
             player.inventory.cursorStack = type.toItemStack(extracted)
