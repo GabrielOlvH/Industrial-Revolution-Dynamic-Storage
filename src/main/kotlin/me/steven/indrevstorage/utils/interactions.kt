@@ -1,15 +1,15 @@
 package me.steven.indrevstorage.utils
 
-import me.steven.indrev.utils.*
+import me.steven.indrev.utils.FakePlayerEntity
 import me.steven.indrevstorage.api.IRDSNetwork
 import me.steven.indrevstorage.api.ItemType
 import me.steven.indrevstorage.api.gui.TerminalConnection
+import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.item.ItemStack
-import net.minecraft.item.ItemUsageContext
 import net.minecraft.server.network.ServerPlayerEntity
 import net.minecraft.server.world.ServerWorld
 import net.minecraft.util.ActionResult
-import net.minecraft.util.ItemScatterer
+import net.minecraft.util.Hand
 import net.minecraft.util.math.BlockPos
 
 fun interactTerminalWithCursor(player: ServerPlayerEntity, network: IRDSNetwork, connection: TerminalConnection, index: Int, isCrouching: Boolean) {
@@ -39,8 +39,8 @@ fun interactTerminalWithCursor(player: ServerPlayerEntity, network: IRDSNetwork,
 
 private var WORM_HOLE_DEVICE_PLAYER: FakePlayerEntity? = null
 
-fun interactWormHoleDevice(network: IRDSNetwork, world: ServerWorld, context: ItemUsageContext): ActionResult {
-    val typeTag = context.stack.orCreateTag.getCompound("Type")
+fun interactWormHoleDevice(network: IRDSNetwork, world: ServerWorld, stack: ItemStack, hand: Hand, player: PlayerEntity, context: WormHoleDeviceUsageContext): ActionResult {
+    val typeTag = stack.orCreateTag.getCompound("Type")
     val itemType = ItemType.fromNbt(typeTag)
 
     val available = network[itemType]
@@ -49,26 +49,40 @@ fun interactWormHoleDevice(network: IRDSNetwork, world: ServerWorld, context: It
         if (WORM_HOLE_DEVICE_PLAYER == null) {
             WORM_HOLE_DEVICE_PLAYER = FakePlayerEntity(world, BlockPos.ORIGIN)
         }
-        val player = WORM_HOLE_DEVICE_PLAYER!!
-        player.setStackInHand(context.hand, stackToUse)
-        val result = itemType.item.useOnBlock(ItemUsageContext(player, context.hand, context.blockHitResult))
-        if (result.isAccepted) {
+        val fakePlayer = WORM_HOLE_DEVICE_PLAYER!!
+        fakePlayer.setPos(player.x, player.y, player.z)
+        fakePlayer.pitch = player.pitch
+        fakePlayer.yaw = player.yaw
+        fakePlayer.headYaw = player.headYaw
+        fakePlayer.prevHeadYaw = player.prevHeadYaw
+        fakePlayer.setStackInHand(hand, stackToUse)
+        val result = context.use(itemType, fakePlayer)
+        if (result.result.isAccepted) {
             val extracted = network.extract(itemType, 1)
             assert(extracted == 1)
-            (0 until player.inventory.size()).forEach { slot ->
-                val invStack = player.inventory.getStack(slot)
+            if (!result.value.isEmpty) {
+                val resultStack = result.value
+                val remainder = network.insert(resultStack.item with resultStack.tag, resultStack.count)
+                if (remainder > 0) {
+                    val unableToInsert = ItemStack(resultStack.item, remainder).also { it.tag = resultStack.tag }
+                    dropItem(world, context.blockPos, unableToInsert)
+                }
+                fakePlayer.setStackInHand(Hand.MAIN_HAND, ItemStack.EMPTY)
+            }
+            (0 until fakePlayer.inventory.size()).forEach { slot ->
+                val invStack = fakePlayer.inventory.getStack(slot)
                 if (!invStack.isEmpty) {
                     val remainder = network.insert(invStack.item with invStack.tag, invStack.count)
                     if (remainder > 0) {
-                        val (x, y, z) = context.blockPos.toVec3d()
-                        ItemScatterer.spawn(world, x, y, z, ItemStack(invStack.item, remainder).also { it.tag = invStack.tag })
+                        val unableToInsert = ItemStack(invStack.item, remainder).also { it.tag = invStack.tag }
+                        dropItem(world, context.blockPos, unableToInsert)
                     }
-                    player.inventory.setStack(slot, ItemStack.EMPTY)
+                    fakePlayer.inventory.setStack(slot, ItemStack.EMPTY)
                 }
             }
             return ActionResult.SUCCESS
         }
-        return result
+        return result.result
     }
     return ActionResult.success(world.isClient)
 }

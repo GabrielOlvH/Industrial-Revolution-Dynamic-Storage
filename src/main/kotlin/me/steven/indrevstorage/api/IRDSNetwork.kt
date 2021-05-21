@@ -7,9 +7,11 @@ import me.steven.indrevstorage.PacketHelper
 import me.steven.indrevstorage.blockentities.HardDriveRackBlockEntity
 import me.steven.indrevstorage.gui.AbstractTerminalScreenHandler
 import me.steven.indrevstorage.utils.componentOf
+import me.steven.indrevstorage.utils.with
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking
 import net.minecraft.block.BlockState
+import net.minecraft.item.ItemStack
 import net.minecraft.server.network.ServerPlayerEntity
 import net.minecraft.server.world.ServerWorld
 import net.minecraft.util.math.BlockPos
@@ -96,6 +98,8 @@ class IRDSNetwork(world: ServerWorld) : Network(STORAGE, world) {
         }
         return remaining
     }
+
+    fun insert(itemStack: ItemStack) = insert(itemStack.item with itemStack.tag, itemStack.count)
 
     fun extract(type: ItemType, count: Int): Int {
         var extracted = 0

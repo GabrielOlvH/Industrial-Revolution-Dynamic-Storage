@@ -1,6 +1,10 @@
 package me.steven.indrevstorage.utils
 
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap
+import me.steven.indrev.utils.component1
+import me.steven.indrev.utils.component2
+import me.steven.indrev.utils.component3
+import me.steven.indrev.utils.toVec3d
 import me.steven.indrevstorage.IRDynamicStorage
 import me.steven.indrevstorage.api.ItemType
 import me.steven.indrevstorage.api.StorageNetworkComponent
@@ -11,10 +15,12 @@ import net.minecraft.block.Block
 import net.minecraft.block.Material
 import net.minecraft.block.entity.BlockEntityType
 import net.minecraft.item.Item
+import net.minecraft.item.ItemStack
 import net.minecraft.item.ItemUsageContext
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.server.world.ServerWorld
 import net.minecraft.util.Identifier
+import net.minecraft.util.ItemScatterer
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 import net.minecraft.util.registry.Registry
@@ -54,4 +60,9 @@ fun componentOf(world: ServerWorld, pos: BlockPos, direction: Direction?): Stora
 
 fun componentOf(world: World, pos: BlockPos, direction: Direction?): StorageNetworkComponent? {
     return if (world is ServerWorld) componentOf(world, pos, direction) else IRDynamicStorage.STORAGE_CONNECTABLE.find(world, pos, direction)
+}
+
+fun dropItem(world: World, blockPos: BlockPos, itemStack: ItemStack) {
+    val (x, y, z) = blockPos.toVec3d()
+    ItemScatterer.spawn(world, x, y, z, itemStack)
 }

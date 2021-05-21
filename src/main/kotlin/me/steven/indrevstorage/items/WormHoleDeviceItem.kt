@@ -2,6 +2,7 @@ package me.steven.indrevstorage.items
 
 import me.steven.indrevstorage.blockentities.TerminalBlockEntity
 import me.steven.indrevstorage.gui.WormHoleDeviceSelectorScreenHandler
+import me.steven.indrevstorage.utils.WormHoleDeviceUsageContext
 import me.steven.indrevstorage.utils.componentOf
 import me.steven.indrevstorage.utils.interactWormHoleDevice
 import me.steven.indrevstorage.utils.itemSettings
@@ -39,7 +40,7 @@ class WormHoleDeviceItem : Item(itemSettings()) {
                 val networkPos = NbtHelper.toBlockPos(tag.getCompound("Pos"))
                 val network = componentOf(world, networkPos, null)?.network
                 if (network != null) {
-                    return interactWormHoleDevice(network, world, context)
+                    return interactWormHoleDevice(network, world, stack, context.hand, player!!, WormHoleDeviceUsageContext.of(context))
                 }
             }
 
@@ -50,32 +51,50 @@ class WormHoleDeviceItem : Item(itemSettings()) {
                 return ActionResult.success(world.isClient)
             }
         }
-        return ActionResult.CONSUME
+        return ActionResult.PASS
     }
 
     override fun use(world: World, player: PlayerEntity, hand: Hand): TypedActionResult<ItemStack> {
         val stack = player.getStackInHand(hand)
-        if (!world.isClient) {
+        if (world is ServerWorld) {
             val tag = stack.orCreateTag
 
-            if (tag.contains("Pos")) {
-                val pos = NbtHelper.toBlockPos(tag.getCompound("Pos"))
-
-                player.openHandledScreen(object : ExtendedScreenHandlerFactory {
-                    override fun createMenu(syncId: Int, inv: PlayerInventory, player: PlayerEntity?): ScreenHandler {
-                        return WormHoleDeviceSelectorScreenHandler(syncId, inv, world, pos)
-                    }
-
-                    override fun getDisplayName(): Text = LiteralText.EMPTY
-
-                    override fun writeScreenOpeningData(player: ServerPlayerEntity?, buf: PacketByteBuf) {
-                        buf.writeBlockPos(pos)
-                    }
-                })
-                postOpenScreen(world, pos)
+            if (!player.isSneaking && tag.contains("Pos")) {
+                val networkPos = NbtHelper.toBlockPos(tag.getCompound("Pos"))
+                val network = componentOf(world, networkPos, null)?.network
+                if (network != null) {
+                    val result = interactWormHoleDevice(network, world, stack, hand, player, WormHoleDeviceUsageContext.of(world, hand, player.blockPos))
+                    if (result.isAccepted)
+                        return TypedActionResult(result, stack)
+                }
             }
+
+            if (player.isSneaking)
+                openScreen(world, stack, player)
         }
         return TypedActionResult.success(stack, world.isClient)
+    }
+
+    private fun openScreen(world: World, stack: ItemStack, player: PlayerEntity): ActionResult {
+        val tag = stack.orCreateTag
+
+        if (tag.contains("Pos")) {
+            val pos = NbtHelper.toBlockPos(tag.getCompound("Pos"))
+
+            player.openHandledScreen(object : ExtendedScreenHandlerFactory {
+                override fun createMenu(syncId: Int, inv: PlayerInventory, player: PlayerEntity?): ScreenHandler {
+                    return WormHoleDeviceSelectorScreenHandler(syncId, inv, world, pos)
+                }
+
+                override fun getDisplayName(): Text = LiteralText.EMPTY
+
+                override fun writeScreenOpeningData(player: ServerPlayerEntity?, buf: PacketByteBuf) {
+                    buf.writeBlockPos(pos)
+                }
+            })
+            postOpenScreen(world, pos)
+        }
+        return ActionResult.SUCCESS
     }
 
     private fun postOpenScreen(world: World, pos: BlockPos) {
