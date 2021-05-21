@@ -91,7 +91,9 @@ class IRDSNetwork(world: ServerWorld) : Network(STORAGE, world) {
         outer@while (it.hasNext()) {
             val rack = it.next()
             for (inv in rack.drivesInv.sortedByDescending { it?.has(type) }.filterNotNull()) {
-                remaining = inv.insert(type, remaining)
+                val result = inv.insert(type, remaining)
+                if (result < remaining) rack.markDirty()
+                remaining = result
                 if (remaining <= 0)
                     break@outer
             }
@@ -108,7 +110,9 @@ class IRDSNetwork(world: ServerWorld) : Network(STORAGE, world) {
             val rack = it.next()
             for (inv in rack.drivesInv.filterNotNull()) {
                 val c = inv[type]
-                extracted += inv.extract(type, c.coerceAtMost(count))
+                val result = inv.extract(type, c.coerceAtMost(count))
+                if (result > 0) rack.markDirty()
+                extracted += result
                 if (extracted >= count) break@outer
             }
         }
