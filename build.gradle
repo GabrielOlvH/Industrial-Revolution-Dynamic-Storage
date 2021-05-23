@@ -16,8 +16,16 @@ repositories {
         name = "JitPack"
         url = "https://jitpack.io"
         content {
-            includeGroup "com.github.GabrielOlvH"
             includeGroup "com.github.emilyploszaj"
+            includeGroup "com.github.GabrielOlvH"
+        }
+    }
+
+    maven {
+        name = "Cafeteria"
+        url = "https://maven.cafeteria.dev/releases"
+        content {
+            includeGroup "me.steven"
         }
     }
 
@@ -72,9 +80,9 @@ dependencies {
 
     modImplementation "net.fabricmc:fabric-language-kotlin:${project.fabric_kotlin_version}"
 
-    modImplementation "com.github.GabrielOlvH:Industrial-Revolution:${project.indrev_version}"
+    modImplementation "me.steven:Industrial-Revolution:${project.indrev_version}"
 
-    include("com.github.GabrielOlvH:Industrial-Revolution:${project.indrev_version}") {
+    include("me.steven:Industrial-Revolution:${project.indrev_version}") {
         transitive = false
     }
 }
