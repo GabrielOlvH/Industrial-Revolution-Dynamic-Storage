@@ -3,6 +3,9 @@ package me.steven.indrevstorage.utils
 import me.steven.indrevstorage.api.ItemType
 import net.minecraft.item.Item
 import net.minecraft.tag.ItemTags
+import net.minecraft.text.LiteralText
+import net.minecraft.text.MutableText
+import net.minecraft.util.Formatting
 import net.minecraft.util.registry.Registry
 
 /*inline*/ class SearchTerm(private val term: String) {
@@ -32,12 +35,23 @@ import net.minecraft.util.registry.Registry
         return if (condition) return test else { _ -> true }
     }
 
-
     private fun isPathCharacterValid(c: Char): Boolean {
         return c == '_' || c == '-' || c in 'a'..'z' || c in '0'..'9' || c == '/' || c == '.'
     }
 
     companion object {
         val REGEX = Regex("([#@].*?(\\s|\$))")
+
+        fun applyFormatting(text: String): MutableText {
+            return text.split(Regex("\\s+")).map { raw ->
+                LiteralText(raw).let {
+                    when (raw.firstOrNull()) {
+                        '#' -> it.formatted(Formatting.LIGHT_PURPLE)
+                        '@' -> it.formatted(Formatting.AQUA)
+                        else -> it.formatted(Formatting.WHITE)
+                    }
+                }
+            }.reduce { first, second -> first.append(LiteralText(" ")).append(second) }
+        }
     }
 }

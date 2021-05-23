@@ -2,8 +2,10 @@ package me.steven.indrevstorage.gui.widgets
 
 import com.mojang.blaze3d.platform.GlStateManager
 import com.mojang.blaze3d.systems.RenderSystem
+import io.github.cottonmc.cotton.gui.client.Scissors
 import io.github.cottonmc.cotton.gui.client.ScreenDrawing
 import io.github.cottonmc.cotton.gui.widget.WTextField
+import me.steven.indrevstorage.utils.SearchTerm
 import net.minecraft.client.MinecraftClient
 import net.minecraft.client.render.Tessellator
 import net.minecraft.client.render.VertexFormats
@@ -11,7 +13,7 @@ import net.minecraft.client.util.math.MatrixStack
 import net.minecraft.text.LiteralText
 import org.lwjgl.opengl.GL11
 
-class WTerminalSearchBar: WTextField(LiteralText("Search...")) {
+class WTerminalSearchBar(val countProvider: () -> Int) : WTextField(LiteralText("Search...")) {
     override fun setSize(x: Int, y: Int) {
         this.width = x
         this.height = y
@@ -41,12 +43,17 @@ class WTerminalSearchBar: WTextField(LiteralText("Search...")) {
 
         var preCursorAdvance = textX
         if (trimText.isNotEmpty()) {
-            val string2 = trimText.substring(0, adjustedCursor)
-            preCursorAdvance = renderer.drawWithShadow(matrices, string2, textX.toFloat(), textY.toFloat(), textColor)
+            val width = renderer.getWidth(trimText.substring(0, adjustedCursor))
+            preCursorAdvance += width
+            Scissors.push(textX, textY, width, height)
+            val string2 = SearchTerm.applyFormatting(trimText)
+            renderer.drawWithShadow(matrices, string2, textX.toFloat(), textY.toFloat(), textColor)
+            Scissors.pop()
         }
 
         if (adjustedCursor < trimText.length) {
-            renderer.drawWithShadow(matrices, trimText.substring(adjustedCursor), (preCursorAdvance - 1).toFloat(), textY.toFloat(), textColor)
+            val string2 = SearchTerm.applyFormatting(trimText)
+            renderer.drawWithShadow(matrices, string2, textX.toFloat(), textY.toFloat(), textColor)
         }
 
 
@@ -71,6 +78,9 @@ class WTerminalSearchBar: WTextField(LiteralText("Search...")) {
             }
             invertedRect(textX + a - 1, textY - 1, (b - a).coerceAtMost(width - OFFSET_X_TEXT), 12)
         }
+
+        val countString = countProvider().toString()
+        renderer.drawWithShadow(matrices, countString, x + width.toFloat() - renderer.getWidth(countString) - OFFSET_X_TEXT , y + (height - 8f) / 2, 0xCCCCCC)
     }
 
     private fun invertedRect(x: Int, y: Int, width: Int, height: Int) {

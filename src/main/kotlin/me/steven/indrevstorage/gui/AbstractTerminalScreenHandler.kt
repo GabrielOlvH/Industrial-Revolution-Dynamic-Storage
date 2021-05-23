@@ -25,7 +25,7 @@ abstract class AbstractTerminalScreenHandler(type: ScreenHandlerType<*>, syncId:
     val connection = TerminalConnection(world, pos) { this }
 
     var currentSearch = ""
-    private val searchText = WTerminalSearchBar()
+    private val searchText = WTerminalSearchBar { connection.clientCache.size }
     private var slotsPanel = WGridPanel()
     private var scrollPanel = WScrollPanel(slotsPanel)
     val panel = TerminalBasePanel()
